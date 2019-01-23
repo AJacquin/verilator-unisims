@@ -37,7 +37,12 @@
 
 `timescale 1 ps / 1 ps
 
-`celldefine
+/* verilator lint_off STMTDLY */
+/* verilator lint_off WIDTH */
+/* verilator lint_off UNOPTFLAT */
+
+/* makes verilator unhappy */
+// `celldefine
 
 module DSP48E2 #(
 `ifdef XIL_TIMING
@@ -142,7 +147,7 @@ module DSP48E2 #(
   input RSTM,
   input RSTP
 );
-  
+
 // define constants
   localparam MODULE_NAME = "DSP48E2";
 
@@ -1036,13 +1041,13 @@ end
   reg  [8:0] OPMODE_reg = 9'b0;
 
   wire [47:0] x_mac_cascd;
-  
+
   reg  [47:0] wmux = 48'b0;
   reg  [47:0] xmux = 48'b0;
   reg  [47:0] ymux = 48'b0;
   reg  [47:0] zmux = 48'b0;
   wire [47:0] z_optinv;
-  
+
   wire cin;
   reg cin_b = 1'b0;
   wire rst_carryin_g;
@@ -1199,14 +1204,14 @@ end
 
 //*** Z mux NB
   always @(OPMODE_mux[6:4] or PCIN_in or P_FDBK_in or C_DATA_in or P_FDBK_47_in)
-	  casex (OPMODE_mux[6:4])
+	  casez (OPMODE_mux[6:4])
          3'b000 : zmux = 48'b0;
          3'b001 : zmux = PCIN_in;
          3'b010 : zmux = P_FDBK_in;
          3'b011 : zmux = C_DATA_in;
          3'b100 : zmux = P_FDBK_in;
          3'b101 : zmux = {{9{PCIN_in[47]}},  {8{PCIN_in[47]}},   PCIN_in[47:17]};
-         3'b11x : zmux = {{9{P_FDBK_47_in}}, {8{P_FDBK_in[47]}}, P_FDBK_in[47:17]};
+         3'b11? : zmux = {{9{P_FDBK_47_in}}, {8{P_FDBK_in[47]}}, P_FDBK_in[47:17]};
         default : zmux = {48{1'bx}};
      endcase
 
@@ -1216,7 +1221,7 @@ end
     always @(posedge CLK_in) begin
 	   if (RSTCTRL_in || glblGSR) begin
          OPMODE_reg <= 9'b0;
-	   end  
+	   end
 	   else if (CECTRL_in) begin
          OPMODE_reg <= OPMODE_in;
 	   end
@@ -1225,7 +1230,7 @@ end
     always @(posedge CLK_in) begin
 	   if (RSTCTRL_in || glblGSR) begin
          CARRYINSEL_reg <= 3'b0;
-	   end  
+	   end
 	   else if (CECTRL_in) begin
          CARRYINSEL_reg <= CARRYINSEL_in;
 	   end
@@ -1239,7 +1244,7 @@ end
     end
 
     always @(CARRYINSEL_mux or CARRYCASCIN_in or MULTSIGNIN_in or OPMODE_mux) begin
-      if(CARRYINSEL_mux == 3'b010) begin 
+      if(CARRYINSEL_mux == 3'b010) begin
         if(!((MULTSIGNIN_in === 1'bx) || (cci_drc_msg == 1'b1) ||
              ((OPMODE_mux == 9'b001001000) && !(MULTSIGNIN_in === 1'bx)) ||
              ((MULTSIGNIN_in == 1'b0) && (CARRYCASCIN_in == 1'b0)))) begin
@@ -1247,7 +1252,7 @@ end
 // CR 619940 -- Enhanced DRC warning
           $display("The simulation model does not know the placement of the %s slices used, so it cannot fully confirm the above warning. It is necessary to view the placement of the %s slices and ensure that these warnings are not being breached\n", MODULE_NAME, MODULE_NAME);
           cci_drc_msg = 1'b1;
-        end  
+        end
         if(!((MULTSIGNIN_in === 1'bx) || (OPMODE_mux[3:0] != 4'b0101))) begin
           $display("DRC warning : [Unisim %s-10] CARRYINSEL is set to 010 with OPMODE set to multiplication (xxx0101). This is an illegal mode and may show deviation between simulation results and hardware behavior. %s instance %m at %.3f ns.", MODULE_NAME, MODULE_NAME, $time/1000.0);
         end
@@ -1256,8 +1261,8 @@ end
           $display("DRC warning : [Unisim %s-11] CARRYINSEL is set to 010 with OPMODEREG set to 0. This causes unknown values after reset occurs. It is suggested to use OPMODEREG = 1 when cascading large adders. %s instance %m at %.3f ns.", MODULE_NAME, MODULE_NAME, $time/1000.0);
           cis_drc_msg = 1'b1;
         end
-      end  
-    end 
+      end
+    end
 
 //*********************************************************
 //*** ALUMODE with 1 level of register
@@ -1297,7 +1302,7 @@ end
   assign comux = ALUMODE_DATA[2] ? 0  : co;
   assign smux =  ALUMODE_DATA[3] ? co : s;
 
-// Carry mux to handle SIMD mode 
+// Carry mux to handle SIMD mode
 // SIMD must be used here since addition of W requires carry propogation
   assign comux4simd = {
               comux[47:36],
@@ -1324,7 +1329,7 @@ end
   assign a_int = {comux_w, cin};
 //  assign b_int = smux_w;
 
-// FINAL ADDER - second stage develops final sums and carries 
+// FINAL ADDER - second stage develops final sums and carries
   assign s0        = a_int[11:0] + smux_w[11:0];
   // invert if alumode10
   assign cout0     = ALUMODE10_in  ^ (a_int[12] ^ s0[12] ^ comux[11]);
@@ -1398,8 +1403,8 @@ end
 
 
 //--########################### END ALU ################################
- 
-    
+
+
 //*** CarryIn Mux and Register
 
 //-------  input 0
@@ -1595,7 +1600,7 @@ end
    assign PATTERNDETECT  = opmode_valid_flag_dou ? pdet_o_mux  : 1'bx;
    assign PATTERNBDETECT = opmode_valid_flag_dou ? pdetb_o_mux : 1'bx;
 
-//*** Output register PATTERN DETECT and UNDERFLOW / OVERFLOW 
+//*** Output register PATTERN DETECT and UNDERFLOW / OVERFLOW
 
    always @(posedge CLK_in) begin
      if(RSTP_in || glblGSR || the_auto_reset_patdet)
@@ -1632,7 +1637,7 @@ end
                      auto_reset_pri && overflow_data && ~pdet_o_mux : 1'b0; // NO_RESET
 
 //--####################################################################
-//--#### CARRYOUT, CARRYCASCOUT. MULTSIGNOUT, PCOUT and XOROUT reg ##### 
+//--#### CARRYOUT, CARRYCASCOUT. MULTSIGNOUT, PCOUT and XOROUT reg #####
 //--####################################################################
 //*** register with 1 level of register
    always @(posedge CLK_in) begin
@@ -1696,7 +1701,7 @@ end
 //*********************************************************
 //**********  INMODE signal registering        ************
 //*********************************************************
-// new 
+// new
 
    always @(posedge CLK_in) begin
       if (RSTINMODE_in || (INMODEREG_BIN == 1'b0) || glblGSR) begin
@@ -1747,4 +1752,8 @@ end
 // end behavioral model
 endmodule
 
-`endcelldefine
+// `endcelldefine
+
+/* verilator lint_on STMTDLY */
+/* verilator lint_on WIDTH */
+/* verilator lint_on UNOPTFLAT */
